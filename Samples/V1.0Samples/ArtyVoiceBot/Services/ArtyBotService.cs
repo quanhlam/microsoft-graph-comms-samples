@@ -435,6 +435,35 @@ public class ArtyBotService : IDisposable
         }
     }
 
+    /// <summary>
+    /// Check if an IP address is private (not routable on the internet)
+    /// </summary>
+    private static bool IsPrivateIP(System.Net.IPAddress ip)
+    {
+        if (ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+            return false;
+
+        var bytes = ip.GetAddressBytes();
+        
+        // 10.0.0.0 - 10.255.255.255
+        if (bytes[0] == 10)
+            return true;
+        
+        // 172.16.0.0 - 172.31.255.255
+        if (bytes[0] == 172 && bytes[1] >= 16 && bytes[1] <= 31)
+            return true;
+        
+        // 192.168.0.0 - 192.168.255.255
+        if (bytes[0] == 192 && bytes[1] == 168)
+            return true;
+        
+        // 127.0.0.0 - 127.255.255.255 (loopback)
+        if (bytes[0] == 127)
+            return true;
+        
+        return false;
+    }
+
     public void Dispose()
     {
         _logger.LogInformation("Disposing Arty Bot Service");
