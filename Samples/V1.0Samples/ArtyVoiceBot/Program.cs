@@ -5,6 +5,9 @@ using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure URLs - listen on all interfaces (0.0.0.0) so it's accessible externally
+builder.WebHost.UseUrls("https://0.0.0.0:9441", "http://0.0.0.0:9442");
+
 // Configure logging
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();

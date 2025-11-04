@@ -89,11 +89,23 @@ public class ArtyBotService : IDisposable
                 ? _config.ServiceDnsName 
                 : _config.CallbackDomain;
             
-            // For ngrok, use standard HTTPS port (443), otherwise include custom port
-            // Path must be /api/callback/calling to match CallbackController
-            var notificationUrl = callbackDomain.Contains("ngrok") 
-                ? new Uri($"https://{callbackDomain}/api/callback/calling")
-                : new Uri($"https://{callbackDomain}:{_config.CallSignalingPort}/api/callback/calling");
+            // For Azure deployment, use HTTP on port 9442 (simpler for POC)
+            // For ngrok, use HTTPS without port
+            Uri notificationUrl;
+            if (callbackDomain.Contains("ngrok"))
+            {
+                notificationUrl = new Uri($"https://{callbackDomain}/api/callback/calling");
+            }
+            else if (callbackDomain.Contains("cloudapp.azure.com") || callbackDomain.Contains("azurewebsites.net"))
+            {
+                // Azure deployment - use HTTP on 9442 for POC
+                notificationUrl = new Uri($"http://{callbackDomain}:9442/api/callback/calling");
+            }
+            else
+            {
+                // Default: HTTPS with configured port
+                notificationUrl = new Uri($"https://{callbackDomain}:{_config.CallSignalingPort}/api/callback/calling");
+            }
             
             builder.SetNotificationUrl(notificationUrl);
             
