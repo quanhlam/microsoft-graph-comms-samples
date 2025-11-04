@@ -119,26 +119,26 @@ public class GraphLogger : IGraphLogger, IDisposable
     
     public TraceLevel DiagnosticLevel { get; set; } = TraceLevel.Info;
     
-    public IObfuscationConfiguration? ObfuscationConfiguration { get; set; }
+    public ObfuscationConfiguration ObfuscationConfiguration { get; set; } = new ObfuscationConfiguration();
     
     public Guid CorrelationId { get; set; }
     
-    public Guid RequestId { get; set; }
+    public string RequestId { get; set; } = string.Empty;
     
-    public int LogicalThreadId { get; set; }
+    public uint LogicalThreadId { get; set; }
     
-    public IDictionary<string, object>? Properties { get; set; }
+    public IReadOnlyDictionary<Type, object> Properties { get; set; } = new Dictionary<Type, object>();
 
-    public void Log(
+    public LogEvent Log(
         TraceLevel level,
         string message,
-        string? component = null,
+        string component = null,
         Guid correlationId = default,
         Guid requestId = default,
-        LogEventType eventType = LogEventType.Default,
-        IEnumerable<object>? properties = null,
-        string? callerMember = null,
-        string? callerFilePath = null,
+        LogEventType eventType = LogEventType.Information,
+        IEnumerable<object> properties = null,
+        string callerMember = null,
+        string callerFilePath = null,
         int callerLineNumber = 0)
     {
         var logLevel = level switch
@@ -152,22 +152,25 @@ public class GraphLogger : IGraphLogger, IDisposable
 
         _logger.Log(logLevel, message);
         
-        // Notify observers
+        // Create log event
         var logEvent = new LogEvent
         {
             Level = level,
             Message = message,
             Component = component ?? Component,
             CorrelationId = correlationId,
-            RequestId = requestId,
+            RequestId = requestId.ToString(),
             EventType = eventType,
             Timestamp = DateTime.UtcNow
         };
         
+        // Notify observers
         foreach (var observer in _observers)
         {
             observer.OnNext(logEvent);
         }
+        
+        return logEvent;
     }
 
     public void Error(string message, Exception? exception = null)

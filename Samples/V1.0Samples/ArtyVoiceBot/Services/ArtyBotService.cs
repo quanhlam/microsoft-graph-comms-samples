@@ -405,6 +405,13 @@ internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Cli
         request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _cachedToken);
     }
 
+    public Task<RequestValidationResult> ValidateInboundRequestAsync(HttpRequestMessage request)
+    {
+        // For this POC, we're not validating inbound requests
+        // In production, you would validate the request signature from Microsoft Graph
+        return Task.FromResult(new RequestValidationResult { IsValid = true });
+    }
+
     private async Task RefreshTokenAsync()
     {
         // This is a simplified version - in production, use Microsoft.Identity.Client (MSAL)
