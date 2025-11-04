@@ -214,7 +214,10 @@ public class ArtyBotService : IDisposable
             var call = await _client.Calls().AddAsync(joinParams, scenarioId);
             var callId = call.Id;
 
-            _logger.LogInformation($"Successfully initiated join to meeting. Call ID: {callId}");
+            _logger.LogInformation($"✅ Successfully initiated join to meeting. Call ID: {callId}");
+            _logger.LogInformation($"   Call State: {call.Resource?.State}");
+            _logger.LogInformation($"   Scenario ID: {scenarioId}");
+            _logger.LogInformation($"   Meeting URL: {request.JoinUrl}");
 
             // Create media stream handler
             var mediaStream = new BotMediaStream(
@@ -369,7 +372,15 @@ public class ArtyBotService : IDisposable
         foreach (var call in args.AddedResources)
         {
             var state = call.Resource.State?.ToString() ?? "Unknown";
-            _logger.LogInformation($"Call updated: {call.Id}, State: {state}");
+            _logger.LogInformation($"📞 Call updated: {call.Id}");
+            _logger.LogInformation($"   State: {state}");
+            _logger.LogInformation($"   Participants: {call.Resource?.Participants?.Count ?? 0}");
+            
+            // Log if the bot is in the lobby
+            if (call.Resource?.ResultInfo != null)
+            {
+                _logger.LogInformation($"   Result: {call.Resource.ResultInfo.Code} - {call.Resource.ResultInfo.Message}");
+            }
             
             if (_activeCalls.TryGetValue(call.Id, out var context))
             {
