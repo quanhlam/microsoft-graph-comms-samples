@@ -45,14 +45,14 @@ public class BotMediaStream : IDisposable
     /// Called when audio media is received from the meeting
     /// This is where we capture the audio!
     /// </summary>
-    private async void OnAudioMediaReceived(object sender, AudioMediaReceivedEventArgs e)
+    private async void OnAudioMediaReceived(object? sender, AudioMediaReceivedEventArgs e)
     {
         try
         {
             _logger.LogDebug(
                 $"Received Audio: Length={e.Buffer.Length}, " +
                 $"Timestamp={e.Buffer.Timestamp}, " +
-                $"IsSilence={e.Buffer.IsSilence()}");
+                $"IsSilence={e.Buffer.IsSilence}");
 
             // Get the audio data
             var audioData = e.Buffer.Data;
@@ -65,7 +65,7 @@ public class BotMediaStream : IDisposable
                 foreach (var unmixedBuffer in e.Buffer.UnmixedAudioBuffers)
                 {
                     // Get speaker information
-                    var speakerId = unmixedBuffer.ActiveSpeakerId ?? "unknown";
+                    var speakerId = unmixedBuffer.ActiveSpeakerId.ToString();
                     var speakerName = "Speaker"; // You can map this to actual names from participants
                     
                     // Convert IntPtr to byte array

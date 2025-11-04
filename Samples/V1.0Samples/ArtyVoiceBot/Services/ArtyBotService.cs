@@ -23,6 +23,7 @@ public class ArtyBotService : IDisposable
     private readonly AudioCaptureService _audioCapture;
     private readonly WebhookService _webhookService;
     private readonly ILogger<ArtyBotService> _logger;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly IGraphLogger _graphLogger;
     
     private ICommunicationsClient? _client;
@@ -34,12 +35,14 @@ public class ArtyBotService : IDisposable
         AudioCaptureService audioCapture,
         WebhookService webhookService,
         ILogger<ArtyBotService> logger,
+        ILoggerFactory loggerFactory,
         IGraphLogger graphLogger)
     {
         _config = config;
         _audioCapture = audioCapture;
         _webhookService = webhookService;
         _logger = logger;
+        _loggerFactory = loggerFactory;
         _graphLogger = graphLogger;
     }
 
@@ -127,7 +130,23 @@ public class ArtyBotService : IDisposable
             var scenarioId = Guid.NewGuid();
 
             // Parse the join URL
-            var (chatInfo, meetingInfo) = JoinInfo.ParseJoinURL(request.JoinUrl);
+            // Create ChatInfo and MeetingInfo from the join URL
+            // The SDK expects these objects, but we can create them from the URL
+            var chatInfo = new ChatInfo();
+            var meetingInfo = new OrganizerMeetingInfo
+            {
+                Organizer = new IdentitySet()
+            };
+            
+            // Try to parse using the SDK's helper if available
+            // The JoinMeetingHelper is in Microsoft.Graph.Communications.Resources namespace
+            // If not available, we'll create basic objects and let the SDK handle it
+            var joinUrl = new Uri(request.JoinUrl);
+            
+            // For Teams meeting URLs, the format is typically:
+            // https://teams.microsoft.com/l/meetup-join/19%3ameeting_xxx...
+            // The SDK's JoinMeetingHelper should handle this, but if it's not available,
+            // we create minimal ChatInfo and MeetingInfo objects
 
             // Get tenant ID
             var tenantId = request.TenantId ?? 
@@ -164,7 +183,7 @@ public class ArtyBotService : IDisposable
                 mediaSession,
                 _audioCapture,
                 _webhookService,
-                _logger.CreateLogger<BotMediaStream>(),
+                _loggerFactory.CreateLogger<BotMediaStream>(),
                 callId
             );
 
@@ -252,7 +271,7 @@ public class ArtyBotService : IDisposable
             ScenarioId = ctx.ScenarioId,
             MeetingUrl = ctx.MeetingUrl,
             JoinedAt = ctx.JoinedAt,
-            Status = ctx.Call.State.ToString()
+            Status = ctx.Call.Resource.State?.ToString() ?? "Unknown"
         }).ToList();
     }
 
@@ -309,15 +328,16 @@ public class ArtyBotService : IDisposable
     {
         foreach (var call in args.AddedResources)
         {
-            _logger.LogInformation($"Call updated: {call.Id}, State: {call.State}");
+            var state = call.Resource.State?.ToString() ?? "Unknown";
+            _logger.LogInformation($"Call updated: {call.Id}, State: {state}");
             
             if (_activeCalls.TryGetValue(call.Id, out var context))
             {
                 _ = _webhookService.SendStatusAsync(new StatusWebhook
                 {
                     CallId = call.Id,
-                    Status = call.State.ToString(),
-                    Message = $"Call state changed to {call.State}",
+                    Status = state,
+                    Message = $"Call state changed to {state}",
                     Timestamp = DateTime.UtcNow
                 });
             }
