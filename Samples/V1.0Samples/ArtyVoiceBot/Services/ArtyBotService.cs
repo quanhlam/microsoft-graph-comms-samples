@@ -319,17 +319,19 @@ public class ArtyBotService : IDisposable
         try
         {
             // Create media session with audio capture enabled, NO video
-            // Note: Passing null for video to avoid H.264 library dependency
+            // Note: Using the single VideoSocketSettings overload and passing null
+            var audioSettings = new AudioSocketSettings
+            {
+                StreamDirections = StreamDirection.Recvonly,
+                SupportedAudioFormat = AudioFormat.Pcm16K, // Teams uses 16kHz PCM
+                ReceiveUnmixedMeetingAudio = true // Get individual speaker streams!
+            };
+
             return _client.CreateMediaSession(
-                audioSocketSettings: new AudioSocketSettings
-                {
-                    StreamDirections = StreamDirection.Recvonly,
-                    SupportedAudioFormat = AudioFormat.Pcm16K, // Teams uses 16kHz PCM
-                    ReceiveUnmixedMeetingAudio = true // Get individual speaker streams!
-                },
-                videoSocketSettings: null,  // No video = no H.264 dependency
-                vbssSocketSettings: null,   // No screen sharing
-                dataSocketSettings: null,   // No data channel
+                audioSocketSettings: audioSettings,
+                videoSocketSettings: (VideoSocketSettings)null,  // Cast to single VideoSocketSettings
+                vbssSocketSettings: (VideoSocketSettings)null,
+                dataSocketSettings: (DataSocketSettings)null,
                 mediaSessionId: mediaSessionId);
         }
         catch (Exception ex)
@@ -467,28 +469,46 @@ internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Cli
 
     private async Task RefreshTokenAsync()
     {
-        // This is a simplified version - in production, use Microsoft.Identity.Client (MSAL)
-        var tokenEndpoint = "https://login.microsoftonline.com/common/oauth2/v2.0/token";
-        var scope = "https://graph.microsoft.com/.default";
-
-        using var httpClient = new HttpClient();
-        var content = new FormUrlEncodedContent(new[]
+        try
         {
-            new KeyValuePair<string, string>("grant_type", "client_credentials"),
-            new KeyValuePair<string, string>("client_id", _appId),
-            new KeyValuePair<string, string>("client_secret", _appSecret),
-            new KeyValuePair<string, string>("scope", scope)
-        });
+            // Use the organizations endpoint instead of common for app-only auth
+            var tokenEndpoint = "https://login.microsoftonline.com/organizations/oauth2/v2.0/token";
+            var scope = "https://graph.microsoft.com/.default";
 
-        var response = await httpClient.PostAsync(tokenEndpoint, content);
-        response.EnsureSuccessStatusCode();
+            using var httpClient = new HttpClient();
+            var content = new FormUrlEncodedContent(new[]
+            {
+                new KeyValuePair<string, string>("grant_type", "client_credentials"),
+                new KeyValuePair<string, string>("client_id", _appId),
+                new KeyValuePair<string, string>("client_secret", _appSecret),
+                new KeyValuePair<string, string>("scope", scope)
+            });
 
-        var tokenResponse = await response.Content.ReadAsStringAsync();
-        var token = System.Text.Json.JsonDocument.Parse(tokenResponse);
-        
-        _cachedToken = token.RootElement.GetProperty("access_token").GetString();
-        var expiresIn = token.RootElement.GetProperty("expires_in").GetInt32();
-        _tokenExpiry = DateTime.UtcNow.AddSeconds(expiresIn - 60); // Refresh 60s early
+            _logger.Info($"Requesting token from {tokenEndpoint}");
+            var response = await httpClient.PostAsync(tokenEndpoint, content);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.Error($"Token request failed: {response.StatusCode}");
+                _logger.Error($"Error response: {errorContent}");
+                throw new InvalidOperationException($"Failed to acquire token: {response.StatusCode} - {errorContent}");
+            }
+
+            var tokenResponse = await response.Content.ReadAsStringAsync();
+            var token = System.Text.Json.JsonDocument.Parse(tokenResponse);
+            
+            _cachedToken = token.RootElement.GetProperty("access_token").GetString();
+            var expiresIn = token.RootElement.GetProperty("expires_in").GetInt32();
+            _tokenExpiry = DateTime.UtcNow.AddSeconds(expiresIn - 60); // Refresh 60s early
+            
+            _logger.Info($"Successfully acquired token. Expires in {expiresIn / 60} minutes.");
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Error refreshing authentication token: {ex.Message}");
+            throw;
+        }
     }
 }
 

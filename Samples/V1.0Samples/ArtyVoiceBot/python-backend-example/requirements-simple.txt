@@ -1,0 +1,5 @@
+# Minimal versions - guaranteed to work on Mac
+fastapi
+uvicorn
+# No pydantic version specified - will use latest compatible
+
