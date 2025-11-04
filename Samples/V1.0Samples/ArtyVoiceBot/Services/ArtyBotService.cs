@@ -131,18 +131,28 @@ public class ArtyBotService : IDisposable
                 },
             };
 
+            _logger.LogInformation("📺 Media Platform Settings:");
+            _logger.LogInformation($"  Application ID: {mediaPlatformSettings.ApplicationId}");
+            _logger.LogInformation($"  Certificate Thumbprint: {mediaPlatformSettings.MediaPlatformInstanceSettings.CertificateThumbprint}");
+            _logger.LogInformation($"  Public IP: {mediaPlatformSettings.MediaPlatformInstanceSettings.InstancePublicIPAddress}");
+            _logger.LogInformation($"  Public Port: {mediaPlatformSettings.MediaPlatformInstanceSettings.InstancePublicPort}");
+            _logger.LogInformation($"  Internal Port: {mediaPlatformSettings.MediaPlatformInstanceSettings.InstanceInternalPort}");
+            _logger.LogInformation($"  Service FQDN: {mediaPlatformSettings.MediaPlatformInstanceSettings.ServiceFqdn}");
+
             builder.SetMediaPlatformSettings(mediaPlatformSettings);
             builder.SetServiceBaseUrl(new Uri(_config.PlaceCallEndpointUrl));
 
             // Build the client
+            _logger.LogInformation("Building Communications Client...");
             _client = builder.Build();
+            _logger.LogInformation("✅ Communications Client built successfully");
 
             // Subscribe to call events
             _client.Calls().OnIncoming += OnIncomingCall;
             _client.Calls().OnUpdated += OnCallUpdated;
 
             _initialized = true;
-            _logger.LogInformation("Arty Bot Service initialized successfully");
+            _logger.LogInformation("✅ Arty Bot Service initialized successfully");
         }
         catch (Exception ex)
         {
@@ -316,25 +326,50 @@ public class ArtyBotService : IDisposable
 
         try
         {
-            // Create media session with audio capture enabled, NO video
-            // Note: Using the single VideoSocketSettings overload and passing null
+            _logger.LogInformation("🎤 Creating local media session for audio capture...");
+            
+            // Create media session with audio capture enabled
             var audioSettings = new AudioSocketSettings
             {
                 StreamDirections = StreamDirection.Recvonly,
                 SupportedAudioFormat = AudioFormat.Pcm16K, // Teams uses 16kHz PCM
                 ReceiveUnmixedMeetingAudio = true // Get individual speaker streams!
             };
+            
+            _logger.LogInformation($"  Audio Settings:");
+            _logger.LogInformation($"    - Stream Direction: {audioSettings.StreamDirections}");
+            _logger.LogInformation($"    - Audio Format: {audioSettings.SupportedAudioFormat}");
+            _logger.LogInformation($"    - Unmixed Audio: {audioSettings.ReceiveUnmixedMeetingAudio}");
 
-            return _client.CreateMediaSession(
+            // For audio-only bots, create session with just audio socket
+            var videoSettings = new VideoSocketSettings
+            {
+                StreamDirections = StreamDirection.Inactive
+            };
+            
+            _logger.LogInformation($"  Video Settings: Inactive");
+
+            var mediaSession = _client.CreateMediaSession(
                 audioSocketSettings: audioSettings,
-                videoSocketSettings: (VideoSocketSettings)null,  // Cast to single VideoSocketSettings
-                vbssSocketSettings: (VideoSocketSettings)null,
-                dataSocketSettings: (DataSocketSettings)null,
+                videoSocketSettings: videoSettings,
                 mediaSessionId: mediaSessionId);
+            
+            _logger.LogInformation($"✅ Media session created successfully!");
+            _logger.LogInformation($"  Session ID: {mediaSession.MediaSessionId}");
+            _logger.LogInformation($"  Audio Socket: {(mediaSession.AudioSocket != null ? "✓" : "✗")}");
+            _logger.LogInformation($"  Video Sockets: {mediaSession.VideoSockets?.Count() ?? 0}");
+            
+            return mediaSession;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating local media session");
+            _logger.LogError(ex, "❌ Failed to create local media session");
+            _logger.LogError($"Exception type: {ex.GetType().Name}");
+            _logger.LogError($"Message: {ex.Message}");
+            if (ex.InnerException != null)
+            {
+                _logger.LogError($"Inner exception: {ex.InnerException.Message}");
+            }
             throw;
         }
     }
