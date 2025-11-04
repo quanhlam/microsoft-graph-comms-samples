@@ -22,20 +22,20 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Pydantic models matching ArtyVoiceBot's webhook data
+# Pydantic models - Using C# PascalCase naming to match ArtyVoiceBot
 class StatusWebhook(BaseModel):
-    callId: str
-    status: str
-    message: str
-    timestamp: datetime
+    CallId: str
+    Status: str
+    Message: str
+    Timestamp: datetime
 
 class TranscriptionWebhook(BaseModel):
-    callId: str
-    audioFilePath: str
-    timestamp: datetime
-    speakerId: str
-    speakerName: str
-    durationMs: int
+    CallId: str
+    AudioFilePath: str
+    Timestamp: datetime
+    SpeakerId: str
+    SpeakerName: str
+    DurationMs: int
 
 
 # Storage for received events (in-memory for POC)
@@ -68,15 +68,15 @@ async def receive_status(webhook: StatusWebhook):
     - Call state changes
     - Errors occur
     """
-    logger.info(f"📞 Status Update - Call: {webhook.callId}, Status: {webhook.status}")
-    logger.info(f"   Message: {webhook.message}")
+    logger.info(f"📞 Status Update - Call: {webhook.CallId}, Status: {webhook.Status}")
+    logger.info(f"   Message: {webhook.Message}")
     
     # Store the event
     status_events.append({
-        "callId": webhook.callId,
-        "status": webhook.status,
-        "message": webhook.message,
-        "timestamp": webhook.timestamp.isoformat(),
+        "callId": webhook.CallId,
+        "status": webhook.Status,
+        "message": webhook.Message,
+        "timestamp": webhook.Timestamp.isoformat(),
         "received_at": datetime.utcnow().isoformat()
     })
     
@@ -86,19 +86,19 @@ async def receive_status(webhook: StatusWebhook):
     # - Trigger workflows
     # - etc.
     
-    if webhook.status == "joined":
-        logger.info(f"✅ Bot successfully joined meeting {webhook.callId}")
+    if webhook.Status == "joined":
+        logger.info(f"✅ Bot successfully joined meeting {webhook.CallId}")
         # TODO: Update your database, notify users, etc.
     
-    elif webhook.status == "left":
-        logger.info(f"👋 Bot left meeting {webhook.callId}")
+    elif webhook.Status == "left":
+        logger.info(f"👋 Bot left meeting {webhook.CallId}")
         # TODO: Finalize meeting records, etc.
     
-    elif webhook.status == "error":
-        logger.error(f"❌ Error in call {webhook.callId}: {webhook.message}")
+    elif webhook.Status == "error":
+        logger.error(f"❌ Error in call {webhook.CallId}: {webhook.Message}")
         # TODO: Handle errors, alert admins, etc.
     
-    return {"received": True, "callId": webhook.callId}
+    return {"received": True, "callId": webhook.CallId}
 
 
 @app.post("/api/arty/transcription")
@@ -109,19 +109,19 @@ async def receive_transcription(webhook: TranscriptionWebhook):
     Called when:
     - Audio file is captured and ready for transcription
     """
-    logger.info(f"🎤 Audio Captured - Call: {webhook.callId}")
-    logger.info(f"   Speaker: {webhook.speakerName} ({webhook.speakerId})")
-    logger.info(f"   File: {webhook.audioFilePath}")
-    logger.info(f"   Duration: {webhook.durationMs}ms")
+    logger.info(f"🎤 Audio Captured - Call: {webhook.CallId}")
+    logger.info(f"   Speaker: {webhook.SpeakerName} ({webhook.SpeakerId})")
+    logger.info(f"   File: {webhook.AudioFilePath}")
+    logger.info(f"   Duration: {webhook.DurationMs}ms")
     
     # Store the event
     transcription_events.append({
-        "callId": webhook.callId,
-        "speakerId": webhook.speakerId,
-        "speakerName": webhook.speakerName,
-        "audioFilePath": webhook.audioFilePath,
-        "durationMs": webhook.durationMs,
-        "timestamp": webhook.timestamp.isoformat(),
+        "callId": webhook.CallId,
+        "speakerId": webhook.SpeakerId,
+        "speakerName": webhook.SpeakerName,
+        "audioFilePath": webhook.AudioFilePath,
+        "durationMs": webhook.DurationMs,
+        "timestamp": webhook.Timestamp.isoformat(),
         "received_at": datetime.utcnow().isoformat()
     })
     

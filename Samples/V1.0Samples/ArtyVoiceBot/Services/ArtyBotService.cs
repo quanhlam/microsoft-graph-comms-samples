@@ -31,6 +31,11 @@ public class ArtyBotService : IDisposable
     private ICommunicationsClient? _client;
     private readonly ConcurrentDictionary<string, CallContext> _activeCalls = new();
     private bool _initialized;
+    
+    /// <summary>
+    /// Gets the Communications Client (for callback processing)
+    /// </summary>
+    public ICommunicationsClient Client => _client ?? throw new InvalidOperationException("Client not initialized");
 
     public ArtyBotService(
         BotConfiguration config,
