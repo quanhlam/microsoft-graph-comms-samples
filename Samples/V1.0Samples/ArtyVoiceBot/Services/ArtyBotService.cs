@@ -177,7 +177,7 @@ public class ArtyBotService : IDisposable
 
             // Parse the meeting URL to get ChatInfo and MeetingInfo
             var (chatInfo, meetingInfo) = JoinInfo.ParseJoinURL(request.JoinUrl);
-            
+
             // Get tenant ID from the parsed meeting info
             var tenantId = (meetingInfo as OrganizerMeetingInfo)?.Organizer?.GetPrimaryIdentity()?.GetTenantId();
             
@@ -192,19 +192,14 @@ public class ArtyBotService : IDisposable
             // Create local media session for audio capture
             var mediaSession = CreateLocalMediaSession();
 
+            var requestedModalities = new List<Modality> { Modality.Audio };
+
             // Set up join parameters with all required properties
             var joinParams = new JoinMeetingParameters(chatInfo, meetingInfo, mediaSession)
             {
                 TenantId = tenantId,
-                // Allow bot to stay in meeting even if organizer leaves
-                RemoveFromDefaultAudioRoutingGroup = false,
             };
             
-            // Set OData types properly
-            if (meetingInfo is OrganizerMeetingInfo orgMeetingInfo)
-            {
-                orgMeetingInfo.AllowConversationWithoutHost = true;
-            }
 
             _logger.LogInformation($"Join parameters configured for call");
 
@@ -335,29 +330,20 @@ public class ArtyBotService : IDisposable
                 SupportedAudioFormat = AudioFormat.Pcm16K, // Teams uses 16kHz PCM
                 ReceiveUnmixedMeetingAudio = true // Get individual speaker streams!
             };
-            
+
             _logger.LogInformation($"  Audio Settings:");
             _logger.LogInformation($"    - Stream Direction: {audioSettings.StreamDirections}");
             _logger.LogInformation($"    - Audio Format: {audioSettings.SupportedAudioFormat}");
             _logger.LogInformation($"    - Unmixed Audio: {audioSettings.ReceiveUnmixedMeetingAudio}");
 
-            // For audio-only bots, create session with just audio socket
-            var videoSettings = new VideoSocketSettings
-            {
-                StreamDirections = StreamDirection.Inactive
-            };
-            
-            _logger.LogInformation($"  Video Settings: Inactive");
 
             var mediaSession = _client.CreateMediaSession(
                 audioSocketSettings: audioSettings,
-                videoSocketSettings: videoSettings,
                 mediaSessionId: mediaSessionId);
             
             _logger.LogInformation($"✅ Media session created successfully!");
             _logger.LogInformation($"  Session ID: {mediaSession.MediaSessionId}");
             _logger.LogInformation($"  Audio Socket: {(mediaSession.AudioSocket != null ? "✓" : "✗")}");
-            _logger.LogInformation($"  Video Sockets: {mediaSession.VideoSockets?.Count() ?? 0}");
             
             return mediaSession;
         }

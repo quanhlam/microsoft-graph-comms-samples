@@ -36,7 +36,7 @@ public class JoinInfo
         using (var stream = new MemoryStream(Encoding.UTF8.GetBytes(match.Groups["context"].Value)))
         {
             var ctxt = (Context)new DataContractJsonSerializer(typeof(Context)).ReadObject(stream);
-            
+
             var chatInfo = new ChatInfo
             {
                 ThreadId = match.Groups["thread"].Value,
