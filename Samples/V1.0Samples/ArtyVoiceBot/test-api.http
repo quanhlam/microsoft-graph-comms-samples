@@ -1,0 +1,42 @@
+### ArtyVoiceBot API Test File
+### Use this with VS Code REST Client extension or copy to Postman
+
+### Variables
+@baseUrl = http://localhost:9441
+@meetingUrl = https://teams.microsoft.com/l/meetup-join/YOUR_MEETING_URL_HERE
+
+### Health Check
+GET {{baseUrl}}/api/meeting/health
+
+### Join a Meeting
+# @name joinMeeting
+POST {{baseUrl}}/api/meeting/join
+Content-Type: application/json
+
+{
+  "joinUrl": "{{meetingUrl}}",
+  "displayName": null
+}
+
+### Get Active Calls
+GET {{baseUrl}}/api/meeting/active
+
+### Leave a Meeting
+# Replace CALL_ID with actual call ID from join response
+POST {{baseUrl}}/api/meeting/leave
+Content-Type: application/json
+
+{
+  "callId": "CALL_ID_HERE"
+}
+
+### Get All Audio Files
+GET {{baseUrl}}/api/audio/files
+
+### Download Specific Audio File
+# Replace FILENAME with actual filename from files list
+GET {{baseUrl}}/api/audio/download?filename=FILENAME_HERE
+
+### Callback Health Check
+GET {{baseUrl}}/api/callback/health
+

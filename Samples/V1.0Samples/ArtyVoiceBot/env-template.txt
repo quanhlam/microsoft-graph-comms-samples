@@ -1,0 +1,26 @@
+# Arty Voice Bot Configuration Template
+# Copy this file to your appsettings.json or set as environment variables
+
+# Bot Registration (from Azure Bot Service)
+BOT_APP_ID=your-bot-app-id-here
+BOT_APP_SECRET=your-bot-app-secret-here
+BOT_NAME=Arty
+
+# ngrok Configuration
+NGROK_DOMAIN=your-reserved-domain.ngrok.io
+NGROK_TCP_PORT=12345
+
+# Certificate (from Windows certificate store)
+CERTIFICATE_THUMBPRINT=your-certificate-thumbprint-here
+
+# Ports
+CALL_SIGNALING_PORT=9441
+INSTANCE_PORT=8445
+
+# Python Backend (your FastAPI server)
+PYTHON_BACKEND_URL=http://localhost:8000
+
+# Audio Settings
+AUDIO_OUTPUT_FOLDER=AudioCapture
+AUDIO_SAMPLE_RATE=16000
+
