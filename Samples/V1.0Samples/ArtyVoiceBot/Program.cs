@@ -119,7 +119,7 @@ public class GraphLogger : IGraphLogger, IDisposable
     
     public TraceLevel DiagnosticLevel { get; set; } = TraceLevel.Info;
     
-    public ObfuscationConfiguration ObfuscationConfiguration { get; set; } = new ObfuscationConfiguration();
+    public Microsoft.Graph.Communications.Common.Telemetry.ObfuscationConfiguration ObfuscationConfiguration { get; set; } = new Microsoft.Graph.Communications.Common.Telemetry.ObfuscationConfiguration();
     
     public Guid CorrelationId { get; set; }
     
@@ -135,7 +135,7 @@ public class GraphLogger : IGraphLogger, IDisposable
         string component = null,
         Guid correlationId = default,
         Guid requestId = default,
-        LogEventType eventType = LogEventType.Information,
+        LogEventType eventType = LogEventType.Informational,
         IEnumerable<object> properties = null,
         string callerMember = null,
         string callerFilePath = null,

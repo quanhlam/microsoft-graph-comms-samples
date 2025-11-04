@@ -3,6 +3,7 @@ using Microsoft.Graph;
 using Microsoft.Graph.Communications.Calls;
 using Microsoft.Graph.Communications.Calls.Media;
 using Microsoft.Graph.Communications.Client;
+using Microsoft.Graph.Communications.Client.Authentication;
 using Microsoft.Graph.Communications.Common;
 using Microsoft.Graph.Communications.Common.Telemetry;
 using Microsoft.Graph.Communications.Resources;
@@ -409,7 +410,8 @@ internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Cli
     {
         // For this POC, we're not validating inbound requests
         // In production, you would validate the request signature from Microsoft Graph
-        return Task.FromResult(new RequestValidationResult { IsValid = true });
+        var result = new RequestValidationResult();
+        return Task.FromResult(result);
     }
 
     private async Task RefreshTokenAsync()
