@@ -378,7 +378,7 @@ internal class CallContext
 /// <summary>
 /// Simple authentication provider for Graph Communications
 /// </summary>
-internal class SimpleAuthenticationProvider : IRequestAuthenticationProvider
+internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Client.Authentication.IRequestAuthenticationProvider
 {
     private readonly string _appId;
     private readonly string _appSecret;

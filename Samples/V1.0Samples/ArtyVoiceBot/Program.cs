@@ -1,6 +1,7 @@
 using ArtyVoiceBot.Models;
 using ArtyVoiceBot.Services;
 using Microsoft.Graph.Communications.Common.Telemetry;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,13 +104,70 @@ app.Run();
 /// <summary>
 /// Simple Graph Logger implementation that bridges to ILogger
 /// </summary>
-public class GraphLogger : IGraphLogger
+public class GraphLogger : IGraphLogger, IDisposable
 {
     private readonly ILogger _logger;
+    private readonly List<IObserver<LogEvent>> _observers = new();
 
     public GraphLogger(string component, ILoggerFactory loggerFactory)
     {
         _logger = loggerFactory.CreateLogger(component);
+        Component = component;
+    }
+
+    public string Component { get; }
+    
+    public TraceLevel DiagnosticLevel { get; set; } = TraceLevel.Info;
+    
+    public IObfuscationConfiguration? ObfuscationConfiguration { get; set; }
+    
+    public Guid CorrelationId { get; set; }
+    
+    public Guid RequestId { get; set; }
+    
+    public int LogicalThreadId { get; set; }
+    
+    public IDictionary<string, object>? Properties { get; set; }
+
+    public void Log(
+        TraceLevel level,
+        string message,
+        string? component = null,
+        Guid correlationId = default,
+        Guid requestId = default,
+        LogEventType eventType = LogEventType.Default,
+        IEnumerable<object>? properties = null,
+        string? callerMember = null,
+        string? callerFilePath = null,
+        int callerLineNumber = 0)
+    {
+        var logLevel = level switch
+        {
+            TraceLevel.Error => LogLevel.Error,
+            TraceLevel.Warning => LogLevel.Warning,
+            TraceLevel.Info => LogLevel.Information,
+            TraceLevel.Verbose => LogLevel.Debug,
+            _ => LogLevel.Information
+        };
+
+        _logger.Log(logLevel, message);
+        
+        // Notify observers
+        var logEvent = new LogEvent
+        {
+            Level = level,
+            Message = message,
+            Component = component ?? Component,
+            CorrelationId = correlationId,
+            RequestId = requestId,
+            EventType = eventType,
+            Timestamp = DateTime.UtcNow
+        };
+        
+        foreach (var observer in _observers)
+        {
+            observer.OnNext(logEvent);
+        }
     }
 
     public void Error(string message, Exception? exception = null)
@@ -132,9 +190,39 @@ public class GraphLogger : IGraphLogger
         _logger.LogWarning(message);
     }
 
-    public void CorrelationId(Guid correlationId)
+    public IDisposable Subscribe(IObserver<LogEvent> observer)
     {
-        // Could implement correlation ID tracking here if needed
+        if (!_observers.Contains(observer))
+        {
+            _observers.Add(observer);
+        }
+        
+        return new Unsubscriber(_observers, observer);
+    }
+
+    public void Dispose()
+    {
+        _observers.Clear();
+    }
+
+    private class Unsubscriber : IDisposable
+    {
+        private readonly List<IObserver<LogEvent>> _observers;
+        private readonly IObserver<LogEvent> _observer;
+
+        public Unsubscriber(List<IObserver<LogEvent>> observers, IObserver<LogEvent> observer)
+        {
+            _observers = observers;
+            _observer = observer;
+        }
+
+        public void Dispose()
+        {
+            if (_observer != null && _observers.Contains(_observer))
+            {
+                _observers.Remove(_observer);
+            }
+        }
     }
 }
 
