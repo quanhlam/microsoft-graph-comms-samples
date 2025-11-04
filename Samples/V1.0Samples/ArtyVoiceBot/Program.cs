@@ -2,11 +2,59 @@ using ArtyVoiceBot.Models;
 using ArtyVoiceBot.Services;
 using Microsoft.Graph.Communications.Common.Telemetry;
 using System.Diagnostics;
+using System.Security.Cryptography.X509Certificates;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure URLs - listen on all interfaces (0.0.0.0) so it's accessible externally
-builder.WebHost.UseUrls("https://0.0.0.0:9441", "http://0.0.0.0:9442");
+// Configure Kestrel with certificate for HTTPS
+builder.WebHost.ConfigureKestrel((context, serverOptions) =>
+{
+    var botConfig = context.Configuration.GetSection("BotConfiguration").Get<BotConfiguration>();
+    
+    // HTTP endpoint on port 9442
+    serverOptions.ListenAnyIP(9442, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+    });
+    
+    // HTTPS endpoint on port 9441 with certificate
+    serverOptions.ListenAnyIP(9441, listenOptions =>
+    {
+        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+        
+        // Load certificate from Windows certificate store
+        if (!string.IsNullOrEmpty(botConfig?.CertificateThumbprint))
+        {
+            using var store = new X509Store(StoreName.My, StoreLocation.LocalMachine);
+            store.Open(OpenFlags.ReadOnly);
+            var certs = store.Certificates.Find(
+                X509FindType.FindByThumbprint,
+                botConfig.CertificateThumbprint,
+                validOnly: false);
+            
+            if (certs.Count > 0)
+            {
+                listenOptions.UseHttps(certs[0]);
+                Console.WriteLine($"✅ HTTPS configured with certificate: {botConfig.CertificateThumbprint}");
+            }
+            else
+            {
+                Console.WriteLine($"⚠️ Certificate not found: {botConfig.CertificateThumbprint}");
+                Console.WriteLine("   Using development certificate instead");
+                listenOptions.UseHttps(); // Falls back to dev cert
+            }
+            
+            store.Close();
+        }
+        else
+        {
+            // Use ASP.NET Core development certificate
+            listenOptions.UseHttps();
+            Console.WriteLine("⚠️ Using development certificate for HTTPS");
+        }
+    });
+});
 
 // Configure logging
 builder.Logging.ClearProviders();
