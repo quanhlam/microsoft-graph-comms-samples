@@ -84,26 +84,23 @@ public class ArtyBotService : IDisposable
             builder.SetAuthenticationProvider(authProvider);
 
             // Set notification URL (where Teams will send callbacks)
+            // MUST be HTTPS - Graph SDK requires it
             // Use CallbackDomain if provided, otherwise fall back to ServiceDnsName
             var callbackDomain = string.IsNullOrEmpty(_config.CallbackDomain) 
                 ? _config.ServiceDnsName 
                 : _config.CallbackDomain;
             
-            // For Azure deployment, use HTTP on port 9442 (simpler for POC)
-            // For ngrok, use HTTPS without port
+g            // Always use HTTPS (Graph requires it)
+            // For ngrok, don't include port (uses 443)
+            // For Azure, include port 9441
             Uri notificationUrl;
             if (callbackDomain.Contains("ngrok"))
             {
                 notificationUrl = new Uri($"https://{callbackDomain}/api/callback/calling");
             }
-            else if (callbackDomain.Contains("cloudapp.azure.com") || callbackDomain.Contains("azurewebsites.net"))
-            {
-                // Azure deployment - use HTTP on 9442 for POC
-                notificationUrl = new Uri($"http://{callbackDomain}:9442/api/callback/calling");
-            }
             else
             {
-                // Default: HTTPS with configured port
+                // Azure or other deployments - use HTTPS with configured port
                 notificationUrl = new Uri($"https://{callbackDomain}:{_config.CallSignalingPort}/api/callback/calling");
             }
             
