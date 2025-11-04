@@ -80,6 +80,28 @@ public class ArtyBotService : IDisposable
             builder.SetNotificationUrl(notificationUrl);
 
             // Set media platform settings
+            // For ngrok/local development, resolve the DNS name to get the public IP
+            System.Net.IPAddress publicIpAddress;
+            try
+            {
+                var addresses = System.Net.Dns.GetHostEntry(_config.ServiceDnsName).AddressList;
+                if (addresses.Length == 0)
+                {
+                    _logger.LogWarning($"Could not resolve IP for {_config.ServiceDnsName}, using IPAddress.Any");
+                    publicIpAddress = System.Net.IPAddress.Any;
+                }
+                else
+                {
+                    publicIpAddress = addresses[0];
+                    _logger.LogInformation($"Resolved {_config.ServiceDnsName} to {publicIpAddress}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, $"Failed to resolve {_config.ServiceDnsName}, using IPAddress.Any");
+                publicIpAddress = System.Net.IPAddress.Any;
+            }
+
             var mediaPlatformSettings = new MediaPlatformSettings
             {
                 ApplicationId = _config.AadAppId,
@@ -87,6 +109,7 @@ public class ArtyBotService : IDisposable
                 {
                     CertificateThumbprint = _config.CertificateThumbprint,
                     InstanceInternalPort = _config.InstanceInternalPort,
+                    InstancePublicIPAddress = publicIpAddress,  // ← This was missing!
                     InstancePublicPort = _config.InstancePublicPort,
                     ServiceFqdn = _config.ServiceDnsName,
                 },
