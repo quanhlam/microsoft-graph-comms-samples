@@ -84,7 +84,9 @@ public class ArtyBotService : IDisposable
             System.Net.IPAddress publicIpAddress;
             try
             {
-                var addresses = System.Net.Dns.GetHostEntry(_config.ServiceDnsName).AddressList;
+                // Remove https:// if present for DNS resolution
+                var hostname = _config.ServiceDnsName.Replace("https://", "").Replace("http://", "");
+                var addresses = System.Net.Dns.GetHostEntry(hostname).AddressList;
                 if (addresses.Length == 0)
                 {
                     _logger.LogWarning($"Could not resolve IP for {_config.ServiceDnsName}, using IPAddress.Any");

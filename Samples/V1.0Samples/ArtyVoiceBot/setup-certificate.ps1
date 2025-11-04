@@ -23,17 +23,19 @@ if (-not $isAdmin) {
 Write-Host "DNS Name: $DnsName" -ForegroundColor Green
 Write-Host ""
 
-# Create self-signed certificate
-Write-Host "Creating self-signed certificate..." -ForegroundColor Yellow
+# Create self-signed certificate using CSP (required for media platform)
+Write-Host "Creating self-signed certificate with CSP provider..." -ForegroundColor Yellow
 
 try {
+    # IMPORTANT: Use -KeyAlgorithm RSA with -KeyLength to force CSP provider
+    # The media platform ONLY supports CSP certificates, not CNG
     $cert = New-SelfSignedCertificate `
         -DnsName $DnsName `
         -CertStoreLocation "Cert:\LocalMachine\My" `
         -KeyExportPolicy Exportable `
-        -KeySpec Signature `
+        -Provider "Microsoft RSA SChannel Cryptographic Provider" `
+        -KeySpec KeyExchange `
         -KeyLength 2048 `
-        -KeyAlgorithm RSA `
         -HashAlgorithm SHA256 `
         -NotAfter (Get-Date).AddYears(2)
     
