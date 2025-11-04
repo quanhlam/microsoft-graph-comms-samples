@@ -165,8 +165,6 @@ public class ArtyBotService : IDisposable
 
             // Generate a scenario ID for tracking
             var scenarioId = Guid.NewGuid();
-
-<<<<<<< HEAD
             // Parse the join URL
             var chatInfo = new ChatInfo();
             var meetingInfo = new OrganizerMeetingInfo
@@ -194,15 +192,6 @@ public class ArtyBotService : IDisposable
             // https://teams.microsoft.com/l/meetup-join/19%3ameeting_xxx...
             // The SDK's JoinMeetingHelper should handle this, but if it's not available,
             // we create minimal ChatInfo and MeetingInfo objects
-=======
-            // Parse the join URL to extract ChatInfo, MeetingInfo, and Tenant ID
-            var (chatInfo, meetingInfo) = JoinInfo.ParseJoinURL(request.JoinUrl);
-            
-            // Get tenant ID from the parsed meeting info
-            var tenantId = (meetingInfo as OrganizerMeetingInfo)?.Organizer.GetPrimaryIdentity()?.GetTenantId();
-            
-            _logger.LogInformation($"Parsed meeting - Tenant ID: {tenantId}, Thread ID: {chatInfo.ThreadId}");
->>>>>>> 74d5195a6415feb3d1924749113e71ae79bd6b86
 
             // Create local media session for audio capture
             var mediaSession = CreateLocalMediaSession();
