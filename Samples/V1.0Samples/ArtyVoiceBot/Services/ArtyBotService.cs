@@ -165,55 +165,38 @@ public class ArtyBotService : IDisposable
         {
             _logger.LogInformation($"Attempting to join meeting: {request.JoinUrl}");
 
-            // Get tenant ID (fallback example)
-            var tenantId = "98b652bf-e6ca-4869-aa75-1eeedc70e82f";
+            // Parse the meeting URL to get ChatInfo and MeetingInfo
+            var (chatInfo, meetingInfo) = JoinInfo.ParseJoinURL(request.JoinUrl);
+            
+            // Get tenant ID from the parsed meeting info
+            var tenantId = (meetingInfo as OrganizerMeetingInfo)?.Organizer?.GetPrimaryIdentity()?.GetTenantId();
+            
+            _logger.LogInformation($"Parsed meeting info:");
+            _logger.LogInformation($"  Tenant ID: {tenantId}");
+            _logger.LogInformation($"  Thread ID: {chatInfo.ThreadId}");
+            _logger.LogInformation($"  Message ID: {chatInfo.MessageId}");
 
             // Generate a scenario ID for tracking
             var scenarioId = Guid.NewGuid();
-            // Parse the join URL
-            var chatInfo = new ChatInfo();
-            var meetingInfo = new OrganizerMeetingInfo
-            {
-                Organizer = new IdentitySet()
-                {
-                    User = new Identity()
-                    {
-                        Id = "13ecc6e6-6290-4f06-90c5-89e8ce22a583",
-                        DisplayName = "Quan Lam",
-                        ODataType = "#microsoft.graph.identity",
-                        AdditionalData = new Dictionary<string, object>
-                        {
-                            {"@odata.type", "#microsoft.graph.identity" },
-                            {"tenantId", tenantId   }
-                        }
-                    }
-                }
-            };
-            meetingInfo.Organizer.User.SetTenantId(tenantId);
-
-            var joinUrl = new Uri(request.JoinUrl);
-
-            // For Teams meeting URLs, the format is typically:
-            // https://teams.microsoft.com/l/meetup-join/19%3ameeting_xxx...
-            // The SDK's JoinMeetingHelper should handle this, but if it's not available,
-            // we create minimal ChatInfo and MeetingInfo objects
 
             // Create local media session for audio capture
             var mediaSession = CreateLocalMediaSession();
 
-            // Set up join parameters
+            // Set up join parameters with all required properties
             var joinParams = new JoinMeetingParameters(chatInfo, meetingInfo, mediaSession)
             {
-                TenantId = tenantId
+                TenantId = tenantId,
+                // Allow bot to stay in meeting even if organizer leaves
+                RemoveFromDefaultAudioRoutingGroup = false,
             };
+            
+            // Set OData types properly
+            if (meetingInfo is OrganizerMeetingInfo orgMeetingInfo)
+            {
+                orgMeetingInfo.AllowConversationWithoutHost = true;
+            }
 
-            //joinParams.TenantId = tenantId;
-
-            _logger.LogInformation($"Tenant ID: {tenantId}");
-            _logger.LogInformation($"Join Params object created. Now dumping all fields and properties...");
-
-            // Debug join params
-            _logger.LogInformation($"Join Params: {@joinParams}");
+            _logger.LogInformation($"Join parameters configured for call");
 
             // Join the call
             var call = await _client.Calls().AddAsync(joinParams, scenarioId);
