@@ -8,7 +8,20 @@ public class BotConfiguration
     public string BotName { get; set; } = "Arty";
     public string AadAppId { get; set; } = string.Empty;
     public string AadAppSecret { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// HTTP domain for signaling/callbacks (ngrok HTTP tunnel)
+    /// Example: "achilary-tonda-evasional.ngrok-free.dev"
+    /// </summary>
+    public string CallbackDomain { get; set; } = string.Empty;
+    
+    /// <summary>
+    /// TCP domain for media streams (ngrok TCP tunnel)
+    /// Example: "1.tcp.ngrok.io"
+    /// LEGACY: Also used as ServiceDnsName for backwards compatibility
+    /// </summary>
     public string ServiceDnsName { get; set; } = string.Empty;
+    
     public string ServiceCname { get; set; } = string.Empty;
     public string CertificateThumbprint { get; set; } = string.Empty;
     public int InstancePublicPort { get; set; } = 8445;

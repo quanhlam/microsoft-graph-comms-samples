@@ -76,8 +76,14 @@ public class ArtyBotService : IDisposable
             builder.SetAuthenticationProvider(authProvider);
 
             // Set notification URL (where Teams will send callbacks)
-            var notificationUrl = new Uri($"https://{_config.ServiceDnsName}:{_config.CallSignalingPort}/api/calling");
+            // Use CallbackDomain if provided, otherwise fall back to ServiceDnsName
+            var callbackDomain = string.IsNullOrEmpty(_config.CallbackDomain) 
+                ? _config.ServiceDnsName 
+                : _config.CallbackDomain;
+            var notificationUrl = new Uri($"https://{callbackDomain}:{_config.CallSignalingPort}/api/calling");
             builder.SetNotificationUrl(notificationUrl);
+            
+            _logger.LogInformation($"Notification URL: {notificationUrl}");
 
             // Set media platform settings
             // For ngrok/local development, resolve the DNS name to get the public IP
