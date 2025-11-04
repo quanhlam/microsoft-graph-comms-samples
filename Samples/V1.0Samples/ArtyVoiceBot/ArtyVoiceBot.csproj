@@ -30,5 +30,14 @@
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
   </ItemGroup>
 
+  <!-- Copy native media DLLs to output directory -->
+  <Target Name="CopyNativeMediaLibraries" AfterTargets="Build">
+    <ItemGroup>
+      <NativeMediaFiles Include="$(NuGetPackageRoot)microsoft.skype.bots.media\1.26.0.94-alpha\runtimes\win-x64\native\*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(NativeMediaFiles)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    <Message Text="Copied native media libraries to output directory" Importance="high" />
+  </Target>
+
 </Project>
 
