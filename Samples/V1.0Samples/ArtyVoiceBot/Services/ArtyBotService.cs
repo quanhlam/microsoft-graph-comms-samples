@@ -90,7 +90,7 @@ public class ArtyBotService : IDisposable
                 ? _config.ServiceDnsName 
                 : _config.CallbackDomain;
             
-g            // Always use HTTPS (Graph requires it)
+            // Always use HTTPS (Graph requires it)
             // For ngrok, don't include port (uses 443)
             // For Azure, include port 9441
             Uri notificationUrl;
