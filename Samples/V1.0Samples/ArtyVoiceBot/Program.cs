@@ -103,44 +103,15 @@ app.Run();
 
 /// <summary>
 /// Graph Logger implementation using Microsoft.Graph.Communications.Common
-/// Inherits from the SDK's GraphLogger base class
+/// Inherits from the SDK's GraphLogger base class and binds to ILogger
 /// </summary>
 public class SimpleGraphLogger : Microsoft.Graph.Communications.Common.Telemetry.GraphLogger
 {
-    private readonly ILogger _logger;
-
     public SimpleGraphLogger(string component, ILoggerFactory loggerFactory) 
         : base(component, redirectToTrace: false)
     {
-        _logger = loggerFactory.CreateLogger(component);
-    }
-
-    /// <inheritdoc/>
-    public override void Error(string message, Exception exception = null)
-    {
-        _logger.LogError(exception, message);
-        base.Error(message, exception);
-    }
-
-    /// <inheritdoc/>
-    public override void Info(string message)
-    {
-        _logger.LogInformation(message);
-        base.Info(message);
-    }
-
-    /// <inheritdoc/>
-    public override void Verbose(string message)
-    {
-        _logger.LogDebug(message);
-        base.Verbose(message);
-    }
-
-    /// <inheritdoc/>
-    public override void Warn(string message)
-    {
-        _logger.LogWarning(message);
-        base.Warn(message);
+        // Bind the GraphLogger to ASP.NET Core's ILogger
+        this.BindToILoggerFactory(loggerFactory);
     }
 }
 
