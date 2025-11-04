@@ -13,6 +13,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace ArtyVoiceBot.Services;
 
+
 /// <summary>
 /// Core service for Arty bot - handles Teams meeting joining and audio capture
 /// Based on teams-recording-bot BotService
@@ -158,31 +159,39 @@ public class ArtyBotService : IDisposable
         {
             _logger.LogInformation($"Attempting to join meeting: {request.JoinUrl}");
 
+            // Get tenant ID (fallback example)
+            var tenantId = "98b652bf-e6ca-4869-aa75-1eeedc70e82f";
+
             // Generate a scenario ID for tracking
             var scenarioId = Guid.NewGuid();
 
             // Parse the join URL
-            // Create ChatInfo and MeetingInfo from the join URL
-            // The SDK expects these objects, but we can create them from the URL
             var chatInfo = new ChatInfo();
             var meetingInfo = new OrganizerMeetingInfo
             {
                 Organizer = new IdentitySet()
+                {
+                    User = new Identity()
+                    {
+                        Id = "13ecc6e6-6290-4f06-90c5-89e8ce22a583",
+                        DisplayName = "Quan Lam",
+                        ODataType = "#microsoft.graph.identity",
+                        AdditionalData = new Dictionary<string, object>
+                        {
+                            {"@odata.type", "#microsoft.graph.identity" },
+                            {"tenantId", tenantId   }
+                        }
+                    }
+                }
             };
-            
-            // Try to parse using the SDK's helper if available
-            // The JoinMeetingHelper is in Microsoft.Graph.Communications.Resources namespace
-            // If not available, we'll create basic objects and let the SDK handle it
+            meetingInfo.Organizer.User.SetTenantId(tenantId);
+
             var joinUrl = new Uri(request.JoinUrl);
-            
+
             // For Teams meeting URLs, the format is typically:
             // https://teams.microsoft.com/l/meetup-join/19%3ameeting_xxx...
             // The SDK's JoinMeetingHelper should handle this, but if it's not available,
             // we create minimal ChatInfo and MeetingInfo objects
-
-            // Get tenant ID
-            var tenantId = request.TenantId ?? 
-                (meetingInfo as OrganizerMeetingInfo)?.Organizer.GetPrimaryIdentity()?.GetTenantId();
 
             // Create local media session for audio capture
             var mediaSession = CreateLocalMediaSession();
@@ -190,19 +199,16 @@ public class ArtyBotService : IDisposable
             // Set up join parameters
             var joinParams = new JoinMeetingParameters(chatInfo, meetingInfo, mediaSession)
             {
-                TenantId = tenantId,
+                TenantId = tenantId
             };
 
-            // If display name provided, join as guest (NOTE: This prevents unmixed audio access!)
-            if (!string.IsNullOrWhiteSpace(request.DisplayName))
-            {
-                _logger.LogWarning("Joining as guest with display name - unmixed audio will NOT be available");
-                joinParams.GuestIdentity = new Identity
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    DisplayName = request.DisplayName,
-                };
-            }
+            //joinParams.TenantId = tenantId;
+
+            _logger.LogInformation($"Tenant ID: {tenantId}");
+            _logger.LogInformation($"Join Params object created. Now dumping all fields and properties...");
+
+            // Debug join params
+            _logger.LogInformation($"Join Params: {@joinParams}");
 
             // Join the call
             var call = await _client.Calls().AddAsync(joinParams, scenarioId);
@@ -475,7 +481,7 @@ internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Cli
         try
         {
             // Use specific tenant ID if available, otherwise fall back to organizations
-            var tenantId = !string.IsNullOrEmpty(_config.TenantId) ? _config.TenantId : "organizations";
+            var tenantId = "98b652bf-e6ca-4869-aa75-1eeedc70e82f";
             var tokenEndpoint = $"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token";
             var scope = "https://graph.microsoft.com/.default";
 
@@ -503,6 +509,7 @@ internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Cli
             var token = System.Text.Json.JsonDocument.Parse(tokenResponse);
             
             _cachedToken = token.RootElement.GetProperty("access_token").GetString();
+            _logger.Info($"Token: {_cachedToken}");
             var expiresIn = token.RootElement.GetProperty("expires_in").GetInt32();
             _tokenExpiry = DateTime.UtcNow.AddSeconds(expiresIn - 60); // Refresh 60s early
             
@@ -514,5 +521,6 @@ internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Cli
             throw;
         }
     }
-}
 
+
+}
