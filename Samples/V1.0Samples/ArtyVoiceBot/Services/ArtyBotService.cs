@@ -71,7 +71,8 @@ public class ArtyBotService : IDisposable
             var authProvider = new SimpleAuthenticationProvider(
                 _config.AadAppId,
                 _config.AadAppSecret,
-                _graphLogger);
+                _graphLogger,
+                _config);
 
             builder.SetAuthenticationProvider(authProvider);
 
@@ -437,14 +438,16 @@ internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Cli
     private readonly string _appId;
     private readonly string _appSecret;
     private readonly IGraphLogger _logger;
+    private readonly BotConfiguration _config;
     private string? _cachedToken;
     private DateTime _tokenExpiry = DateTime.MinValue;
 
-    public SimpleAuthenticationProvider(string appId, string appSecret, IGraphLogger logger)
+    public SimpleAuthenticationProvider(string appId, string appSecret, IGraphLogger logger, BotConfiguration config)
     {
         _appId = appId;
         _appSecret = appSecret;
         _logger = logger;
+        _config = config;
     }
 
     public async Task AuthenticateOutboundRequestAsync(HttpRequestMessage request, string tenant)
@@ -471,8 +474,9 @@ internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Cli
     {
         try
         {
-            // Use the organizations endpoint instead of common for app-only auth
-            var tokenEndpoint = "https://login.microsoftonline.com/organizations/oauth2/v2.0/token";
+            // Use specific tenant ID if available, otherwise fall back to organizations
+            var tenantId = !string.IsNullOrEmpty(_config.TenantId) ? _config.TenantId : "organizations";
+            var tokenEndpoint = $"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token";
             var scope = "https://graph.microsoft.com/.default";
 
             using var httpClient = new HttpClient();

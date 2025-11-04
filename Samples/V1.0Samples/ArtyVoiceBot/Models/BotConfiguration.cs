@@ -8,6 +8,7 @@ public class BotConfiguration
     public string BotName { get; set; } = "Arty";
     public string AadAppId { get; set; } = string.Empty;
     public string AadAppSecret { get; set; } = string.Empty;
+    public string TenantId { get; set; } = string.Empty;
     
     /// <summary>
     /// HTTP domain for signaling/callbacks (ngrok HTTP tunnel)
