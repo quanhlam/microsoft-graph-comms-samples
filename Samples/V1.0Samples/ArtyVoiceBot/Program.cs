@@ -42,7 +42,7 @@ builder.Services.AddSingleton(pythonBackendSettings);
 builder.Services.AddSingleton<IGraphLogger>(sp =>
 {
     var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
-    return new GraphLogger("ArtyVoiceBot", loggerFactory);
+    return new SimpleGraphLogger("ArtyVoiceBot", loggerFactory);
 });
 
 // Register HTTP client for webhook service
@@ -102,130 +102,45 @@ app.Logger.LogInformation($"📝 Swagger UI: http://localhost:{builder.Configura
 app.Run();
 
 /// <summary>
-/// Simple Graph Logger implementation that bridges to ILogger
+/// Graph Logger implementation using Microsoft.Graph.Communications.Common
+/// Inherits from the SDK's GraphLogger base class
 /// </summary>
-public class GraphLogger : IGraphLogger, IDisposable
+public class SimpleGraphLogger : Microsoft.Graph.Communications.Common.Telemetry.GraphLogger
 {
     private readonly ILogger _logger;
-    private readonly List<IObserver<LogEvent>> _observers = new();
 
-    public GraphLogger(string component, ILoggerFactory loggerFactory)
+    public SimpleGraphLogger(string component, ILoggerFactory loggerFactory) 
+        : base(component, redirectToTrace: false)
     {
         _logger = loggerFactory.CreateLogger(component);
-        Component = component;
     }
 
-    public string Component { get; }
-    
-    public TraceLevel DiagnosticLevel { get; set; } = TraceLevel.Info;
-    
-    public Microsoft.Graph.Communications.Common.Telemetry.ObfuscationConfiguration ObfuscationConfiguration { get; set; } = new Microsoft.Graph.Communications.Common.Telemetry.ObfuscationConfiguration();
-    
-    public Guid CorrelationId { get; set; }
-    
-    public string RequestId { get; set; } = string.Empty;
-    
-    public uint LogicalThreadId { get; set; }
-    
-    public IReadOnlyDictionary<Type, object> Properties { get; set; } = new Dictionary<Type, object>();
-
-    public LogEvent Log(
-        TraceLevel level,
-        string message,
-        string component = null,
-        Guid correlationId = default,
-        Guid requestId = default,
-        LogEventType eventType = LogEventType.Informational,
-        IEnumerable<object> properties = null,
-        string callerMember = null,
-        string callerFilePath = null,
-        int callerLineNumber = 0)
-    {
-        var logLevel = level switch
-        {
-            TraceLevel.Error => LogLevel.Error,
-            TraceLevel.Warning => LogLevel.Warning,
-            TraceLevel.Info => LogLevel.Information,
-            TraceLevel.Verbose => LogLevel.Debug,
-            _ => LogLevel.Information
-        };
-
-        _logger.Log(logLevel, message);
-        
-        // Create log event
-        var logEvent = new LogEvent
-        {
-            Level = level,
-            Message = message,
-            Component = component ?? Component,
-            CorrelationId = correlationId,
-            RequestId = requestId.ToString(),
-            EventType = eventType,
-            Timestamp = DateTime.UtcNow
-        };
-        
-        // Notify observers
-        foreach (var observer in _observers)
-        {
-            observer.OnNext(logEvent);
-        }
-        
-        return logEvent;
-    }
-
-    public void Error(string message, Exception? exception = null)
+    /// <inheritdoc/>
+    public override void Error(string message, Exception exception = null)
     {
         _logger.LogError(exception, message);
+        base.Error(message, exception);
     }
 
-    public void Info(string message)
+    /// <inheritdoc/>
+    public override void Info(string message)
     {
         _logger.LogInformation(message);
+        base.Info(message);
     }
 
-    public void Verbose(string message)
+    /// <inheritdoc/>
+    public override void Verbose(string message)
     {
         _logger.LogDebug(message);
+        base.Verbose(message);
     }
 
-    public void Warn(string message)
+    /// <inheritdoc/>
+    public override void Warn(string message)
     {
         _logger.LogWarning(message);
-    }
-
-    public IDisposable Subscribe(IObserver<LogEvent> observer)
-    {
-        if (!_observers.Contains(observer))
-        {
-            _observers.Add(observer);
-        }
-        
-        return new Unsubscriber(_observers, observer);
-    }
-
-    public void Dispose()
-    {
-        _observers.Clear();
-    }
-
-    private class Unsubscriber : IDisposable
-    {
-        private readonly List<IObserver<LogEvent>> _observers;
-        private readonly IObserver<LogEvent> _observer;
-
-        public Unsubscriber(List<IObserver<LogEvent>> observers, IObserver<LogEvent> observer)
-        {
-            _observers = observers;
-            _observer = observer;
-        }
-
-        public void Dispose()
-        {
-            if (_observer != null && _observers.Contains(_observer))
-            {
-                _observers.Remove(_observer);
-            }
-        }
+        base.Warn(message);
     }
 }
 
