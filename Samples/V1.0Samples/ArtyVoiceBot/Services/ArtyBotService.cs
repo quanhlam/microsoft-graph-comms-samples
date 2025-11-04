@@ -88,10 +88,16 @@ public class ArtyBotService : IDisposable
             var callbackDomain = string.IsNullOrEmpty(_config.CallbackDomain) 
                 ? _config.ServiceDnsName 
                 : _config.CallbackDomain;
-            var notificationUrl = new Uri($"https://{callbackDomain}:{_config.CallSignalingPort}/api/calling");
+            
+            // For ngrok, use standard HTTPS port (443), otherwise include custom port
+            // Path must be /api/callback/calling to match CallbackController
+            var notificationUrl = callbackDomain.Contains("ngrok") 
+                ? new Uri($"https://{callbackDomain}/api/callback/calling")
+                : new Uri($"https://{callbackDomain}:{_config.CallSignalingPort}/api/callback/calling");
+            
             builder.SetNotificationUrl(notificationUrl);
             
-            _logger.LogInformation($"Notification URL: {notificationUrl}");
+            _logger.LogInformation($"📡 Notification URL: {notificationUrl}");
 
             // Set media platform settings
             // For ngrok/local development, resolve the DNS name to get the public IP
