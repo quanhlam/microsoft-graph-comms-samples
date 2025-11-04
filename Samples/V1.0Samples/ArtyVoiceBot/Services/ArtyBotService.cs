@@ -318,18 +318,18 @@ public class ArtyBotService : IDisposable
 
         try
         {
-            // Create media session with audio capture enabled
+            // Create media session with audio capture enabled, NO video
+            // Note: Passing null for video to avoid H.264 library dependency
             return _client.CreateMediaSession(
-                new AudioSocketSettings
+                audioSocketSettings: new AudioSocketSettings
                 {
                     StreamDirections = StreamDirection.Recvonly,
                     SupportedAudioFormat = AudioFormat.Pcm16K, // Teams uses 16kHz PCM
                     ReceiveUnmixedMeetingAudio = true // Get individual speaker streams!
                 },
-                new VideoSocketSettings
-                {
-                    StreamDirections = StreamDirection.Inactive // We don't need video for POC
-                },
+                videoSocketSettings: null,  // No video = no H.264 dependency
+                vbssSocketSettings: null,   // No screen sharing
+                dataSocketSettings: null,   // No data channel
                 mediaSessionId: mediaSessionId);
         }
         catch (Exception ex)

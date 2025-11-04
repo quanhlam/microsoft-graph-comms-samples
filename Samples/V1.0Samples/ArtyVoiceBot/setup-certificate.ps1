@@ -3,7 +3,7 @@
 
 param(
     [Parameter(Mandatory=$false)]
-    [string]$DnsName = "arty-bot.ngrok.io"
+    [string]$DnsName = "0.tcp.in.ngrok.io"
 )
 
 Write-Host "=" * 60 -ForegroundColor Cyan

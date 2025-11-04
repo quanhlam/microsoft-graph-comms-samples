@@ -47,9 +47,14 @@ public class WebhookService
                 _logger.LogWarning($"Failed to send transcription webhook. Status: {response.StatusCode}");
             }
         }
+        catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException)
+        {
+            // Python backend not running - this is OK for POC
+            _logger.LogDebug($"Python backend not available (this is OK if testing without Python)");
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending transcription webhook");
+            _logger.LogWarning(ex, "Error sending transcription webhook");
         }
     }
 
@@ -77,9 +82,14 @@ public class WebhookService
                 _logger.LogWarning($"Failed to send status webhook. Status: {response.StatusCode}");
             }
         }
+        catch (HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException)
+        {
+            // Python backend not running - this is OK for POC, just log as debug
+            _logger.LogDebug($"Python backend not available at {_settings.BaseUrl} (this is OK if testing without Python)");
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error sending status webhook");
+            _logger.LogWarning(ex, "Error sending status webhook");
         }
     }
 
