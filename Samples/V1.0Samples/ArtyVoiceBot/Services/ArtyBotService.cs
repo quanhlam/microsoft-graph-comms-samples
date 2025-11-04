@@ -498,7 +498,13 @@ internal class SimpleAuthenticationProvider : Microsoft.Graph.Communications.Cli
     {
         // For this POC, we're not validating inbound requests
         // In production, you would validate the request signature from Microsoft Graph
-        var result = new RequestValidationResult();
+        var result = new RequestValidationResult 
+        { 
+            IsValid = true  // ← THIS WAS MISSING! Must explicitly set to true
+        };
+        
+        _logger.Info("Validated inbound request (POC mode - accepting all requests)");
+        
         return Task.FromResult(result);
     }
 
