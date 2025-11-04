@@ -11,8 +11,7 @@ namespace ArtyVoiceBot.Controllers;
 /// This is where Teams sends notifications about call events
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
-[Route("api/Callback")]  // Support both lowercase and PascalCase
+[Route("api/callback")]  // Use lowercase to match what Teams expects
 public class CallbackController : ControllerBase
 {
     private readonly ArtyBotService _botService;
