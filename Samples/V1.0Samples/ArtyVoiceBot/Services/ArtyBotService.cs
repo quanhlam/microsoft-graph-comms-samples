@@ -1,4 +1,5 @@
 using ArtyVoiceBot.Models;
+using ArtyVoiceBot.Helpers;
 using Microsoft.Graph;
 using Microsoft.Graph.Communications.Calls;
 using Microsoft.Graph.Communications.Calls.Media;
@@ -161,28 +162,13 @@ public class ArtyBotService : IDisposable
             // Generate a scenario ID for tracking
             var scenarioId = Guid.NewGuid();
 
-            // Parse the join URL
-            // Create ChatInfo and MeetingInfo from the join URL
-            // The SDK expects these objects, but we can create them from the URL
-            var chatInfo = new ChatInfo();
-            var meetingInfo = new OrganizerMeetingInfo
-            {
-                Organizer = new IdentitySet()
-            };
+            // Parse the join URL to extract ChatInfo, MeetingInfo, and Tenant ID
+            var (chatInfo, meetingInfo) = JoinInfo.ParseJoinURL(request.JoinUrl);
             
-            // Try to parse using the SDK's helper if available
-            // The JoinMeetingHelper is in Microsoft.Graph.Communications.Resources namespace
-            // If not available, we'll create basic objects and let the SDK handle it
-            var joinUrl = new Uri(request.JoinUrl);
+            // Get tenant ID from the parsed meeting info
+            var tenantId = (meetingInfo as OrganizerMeetingInfo)?.Organizer.GetPrimaryIdentity()?.GetTenantId();
             
-            // For Teams meeting URLs, the format is typically:
-            // https://teams.microsoft.com/l/meetup-join/19%3ameeting_xxx...
-            // The SDK's JoinMeetingHelper should handle this, but if it's not available,
-            // we create minimal ChatInfo and MeetingInfo objects
-
-            // Get tenant ID
-            var tenantId = request.TenantId ?? 
-                (meetingInfo as OrganizerMeetingInfo)?.Organizer.GetPrimaryIdentity()?.GetTenantId();
+            _logger.LogInformation($"Parsed meeting - Tenant ID: {tenantId}, Thread ID: {chatInfo.ThreadId}");
 
             // Create local media session for audio capture
             var mediaSession = CreateLocalMediaSession();
