@@ -76,7 +76,9 @@ public class AudioCaptureService : IDisposable
         // Create new WAV file for this speaker
         var sanitizedName = SanitizeFileName(speakerName);
         var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-        var fileName = $"{timestamp}_{sanitizedName}_{speakerId.Substring(0, 8)}.wav";
+        // Take up to 8 chars from speakerId, or less if it's shorter
+        var speakerIdShort = speakerId.Length > 8 ? speakerId.Substring(0, 8) : speakerId;
+        var fileName = $"{timestamp}_{sanitizedName}_{speakerIdShort}.wav";
         var filePath = Path.Combine(_outputPath, fileName);
 
         // Initialize Wave Format using PCM 16bit 16kHz (Teams default)
@@ -100,7 +102,9 @@ public class AudioCaptureService : IDisposable
     public WaveFileWriter CreateMixedAudioWriter(string callId)
     {
         var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-        var fileName = $"{timestamp}_mixed_{callId.Substring(0, 8)}.wav";
+        // Take up to 8 chars from callId, or less if it's shorter
+        var callIdShort = callId.Length > 8 ? callId.Substring(0, 8) : callId;
+        var fileName = $"{timestamp}_mixed_{callIdShort}.wav";
         var filePath = Path.Combine(_outputPath, fileName);
 
         var waveFormat = new WaveFormat(
